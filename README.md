@@ -29,3 +29,6 @@
 ![img-1](media/img-1.png)
 
 ![img-1](media/img-2.png)
+
+## Лицензия
+[GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
