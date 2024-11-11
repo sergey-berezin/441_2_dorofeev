@@ -72,6 +72,25 @@ public class Solver
         }
         ExitMessage();
     }
+    public async Task SolveAsync()
+    {
+        int processorCount = Environment.ProcessorCount;
+        Console.WriteLine("P:" + processorCount);
+        int i = 5000;
+        while (i>0)
+            {
+
+                await solver.EvolveAsync();
+                Console.WriteLine("Все задачи завершены.");
+                Console.Clear();
+                Console.WriteLine("\n\t  [Generation (G): " + (solver.Generation - 1) +  "/" + config.Epochs + "]");
+                Console.WriteLine("\t   [Populatioion size: " + config.PopulationSize + "]\n");
+                Console.WriteLine(solver.Best.FScore);
+                i--;
+            }
+        Console.WriteLine("Все поколения завершены.");
+        Console.WriteLine(solver.Best);
+    }
     void StartMessage()
     {
         string version = "0.1";
@@ -98,8 +117,8 @@ public class Solver
     }
     void PrintBest(IEntity path, IEntity best)
     {
-        string curMsg = ">>> {current} \n\t[G: " + path.Generation + "]\nScore = " + path.FScore; 
-        string bestMsg = "\n    {best} \n\t[G:" + best.Generation + "]\nScore = " + best.FScore; 
+        string curMsg = ">>> {current} \n\t[G: " + path.Generation + "] Score = " + path.FScore; 
+        string bestMsg = "\n    {best} \n\t[G:" + best.Generation + "] Score = " + best.FScore; 
         if (toShowDetails)
         {
             curMsg = ">>> {current}\n    \t" + path;
