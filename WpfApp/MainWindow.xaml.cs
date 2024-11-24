@@ -13,6 +13,7 @@ using lib;
 using OxyPlot.Series;
 using OxyPlot;
 using System.Reflection;
+using Microsoft.EntityFrameworkCore;
 
 namespace WpfApp
 {
@@ -20,6 +21,43 @@ namespace WpfApp
     /// Логика взаимодействия для MainWindow.xaml
     /// </summary>
     /// 
+
+    public class Experiment
+    {
+        public int Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int NodeaAmount { get; set; }
+        public long Epochs { get; set; }
+        public long PopulationSize { get; set; }
+        public double MutationProbability { get; set; }
+        public double CrossoverProbability { get; set; }
+        public double SurvivorsPart { get; set; }
+        public string Best { get; set; } = string.Empty;
+        public double BestFScore { get; set; }
+        public string Matrix { get; set; } = string.Empty;
+        public string Population { get; set; } = string.Empty;
+
+        // TODO
+        // Здесь нужно добавить сохранение лучшей популяции -> написать функцию перевода IEntyty Popolutaion -> strting JSON
+        // Соответсвенно, string JSON -> IEntyty Popolutaion
+    }
+
+    public class ExperimentContext : DbContext
+    {
+        public DbSet<Experiment> Experiments { get; set; }
+
+        public ExperimentContext()
+        {
+            Database.EnsureCreated();
+        }
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=ExperimentDB;Trusted_Connection=True;");
+        }
+    }
+
+
     public partial class MainWindow : Window, INotifyPropertyChanged
     {
         int nodesAmount;
@@ -52,7 +90,6 @@ namespace WpfApp
 
         // TSPSolver
         TSPConfig config;
-        TSPSolver solver;
         int processorCount;
         TSPSolver[] solvers;
         TSPPath bestPath;
@@ -64,6 +101,8 @@ namespace WpfApp
         private ObservableCollection<DataPoint> dataPoints;
         private DispatcherTimer timerOxy;
 
+        // DB
+        private readonly ExperimentService _experimentService = new ExperimentService();
 
         public int NodesAmount
         {
@@ -80,6 +119,7 @@ namespace WpfApp
             {
                 bool success = long.TryParse(value.ToString(), out epochs);
                 if (success) config.Epochs = epochs;
+                OnPropertyChanged(nameof(Epochs));
             }
             get => epochs;
         }
@@ -89,6 +129,7 @@ namespace WpfApp
             {
                 bool success = long.TryParse(value.ToString(), out populationSize);
                 if (success) config.PopulationSize = populationSize;
+                OnPropertyChanged(nameof(PopulationSize));
             }
             get => populationSize;
         }
@@ -98,6 +139,7 @@ namespace WpfApp
             {
                 bool success = double.TryParse(value.ToString(), out mutationProbability);
                 if (success) config.MutationProbability = mutationProbability;
+                OnPropertyChanged(nameof(MutationProbability));
             }
             get => mutationProbability;
         }
@@ -107,6 +149,7 @@ namespace WpfApp
             {
                 bool success = double.TryParse(value.ToString(), out crossoverProbability);
                 if (success) config.CrossoverProbability = crossoverProbability;
+                OnPropertyChanged(nameof(CrossoverProbability));
             }
             get => crossoverProbability;
         }
@@ -116,6 +159,7 @@ namespace WpfApp
             {
                 bool success = double.TryParse(value.ToString(), out survivorsPart);
                 if (success) config.SurvivorsPart = survivorsPart;
+                OnPropertyChanged(nameof(SurvivorsPart));
             }
             get => survivorsPart;
         }
@@ -129,7 +173,10 @@ namespace WpfApp
         }
         public string Matrix
         {
-            set { }
+            set 
+            {
+                //OnPropertyChanged(nameof(Matrix));
+            }
             get
             {
                 string s = "", row = "";
@@ -210,7 +257,7 @@ namespace WpfApp
 
             config = new();
             config.Epochs = 1000;
-            solver = new(nodesAmount, matrix, config);
+            
             processorCount = Environment.ProcessorCount;
             solvers = new TSPSolver[processorCount];
             best = string.Empty;
@@ -220,7 +267,7 @@ namespace WpfApp
                 solvers[i] = new TSPSolver(nodesAmount, matrix, config);
             }
 
-
+            bestPath = (TSPPath)solvers[0].Best;
             epochs = config.Epochs;
             populationSize = config.PopulationSize;
             mutationProbability = config.MutationProbability;
@@ -303,16 +350,21 @@ namespace WpfApp
         {
             matrix = TSPMatrix.Generate(nodesAmount, (int) MaxDistance);
             OnPropertyChanged(nameof(Matrix));
-            solver = new(nodesAmount, matrix, config);
+            for (int i = 0; i < processorCount; i++)
+            {
+                solvers[i] = new TSPSolver(nodesAmount, matrix, config);
+            }
             drawNodes();
         }
         private async void ButtonStart_Click(object sender, RoutedEventArgs e)
         {
-            solver = new(nodesAmount, matrix, config, solver.Population);
             StatusBarValue = 0;
             _cancellationTokenSource = new CancellationTokenSource();
             btStart.IsEnabled = false;
             btGen.IsEnabled = false;
+            btDbSave.IsEnabled = false;
+            btDbLoad.IsEnabled = false;
+            btDbDelete.IsEnabled = false;
             tbNodesAmount.IsEnabled = tbNodesEpochs.IsEnabled = tbPopulationSize.IsEnabled =
                 tbMutationProbability.IsEnabled = tbCrossoverProbability.IsEnabled = tbSurvivorsPart.IsEnabled = false;
             dataPoints.Clear();
@@ -321,38 +373,25 @@ namespace WpfApp
             {
                 await RunGenAlgoAsync(_cancellationTokenSource.Token);
                 MessageBox.Show("Эволюция была успешно завершена!\n" +
-                    $"Найдена особь с оценкой приспособленности: {solver.Best.FScore}.", "Эволюция завершена", MessageBoxButton.OK, MessageBoxImage.Asterisk);
+                    $"Найдена особь с оценкой приспособленности: {bestPath.FScore}.", "Эволюция завершена", MessageBoxButton.OK, MessageBoxImage.Asterisk);
             }
             catch (OperationCanceledException)
             {
                 MessageBox.Show("Эволюция была остановлена!\n" +
-                    $"Найдена особь с оценкой приспособленности: {solver.Best.FScore}.", "Эволюция остановлена", MessageBoxButton.OK, MessageBoxImage.Stop);
+                    $"Найдена особь с оценкой приспособленности: {bestPath.FScore}.", "Эволюция остановлена", MessageBoxButton.OK, MessageBoxImage.Stop);
             }
             finally
             {
                 btStart.IsEnabled = true;
                 btGen.IsEnabled = true;
+                btDbSave.IsEnabled = true;
+                btDbLoad.IsEnabled = true;
+                btDbDelete.IsEnabled = true;
                 tbNodesAmount.IsEnabled = tbNodesEpochs.IsEnabled = tbPopulationSize.IsEnabled =
                     tbMutationProbability.IsEnabled = tbCrossoverProbability.IsEnabled = tbSurvivorsPart.IsEnabled = true;
                 timerOxy.Stop();
             }
         }
-        //private async Task RunGenAlgoAsync(CancellationToken cancellationToken)
-        //{
-        //    await Task.Run(async () =>
-        //    {
-        //        for (long i = 0; (epochs == -1 || i < epochs); i++)
-        //        {
-        //            cancellationToken.ThrowIfCancellationRequested();
-        //            await solver.EvolveAsync();
-        //            best = ((TSPPath)solver.Best).ToString();
-        //            OnPropertyChanged(nameof(Best));
-        //            CurEpoch = i + 1;
-        //            StatusBarValue = (i + 1) * 100 / epochs;
-        //            Application.Current.Dispatcher.Invoke(() => dataPoints.Add(new DataPoint(CurEpoch, solver.Best.FScore)));
-        //        }
-        //    }, cancellationToken);
-        //}
         private async Task RunGenAlgoAsync(CancellationToken cancellationToken)
         {
             await Task.Run(async () =>
@@ -378,10 +417,9 @@ namespace WpfApp
                         {
                             if (solvers[j].Best.FScore > max)
                             {
-                                best = ((TSPPath)solvers[j].Best).ToString();
-                                bestPath = (TSPPath)solvers[j].Best;
-
-                        }
+                                best = ((TSPPath) solvers[j].Best).ToString();
+                                bestPath = (TSPPath) solvers[j].Best;
+                            }
                         }
                         OnPropertyChanged(nameof(Best));
                         CurEpoch = i + 1;
@@ -404,6 +442,61 @@ namespace WpfApp
             }
             base.OnClosing(e);
         }
+
+        private async void btDbSave_Click(object sender, RoutedEventArgs e)
+        {
+            // Сохранение результатов в БД
+            string title = tbDbTitle.Text;
+            await _experimentService.SaveExperiment(title, nodesAmount, config, best, bestPath, "", "");
+            Debug.WriteLine("Результаты сохранены в базу данных.");
+        }
+
+        private void btDbLoad_Click(object sender, RoutedEventArgs e)
+        {
+            using var context = new ExperimentContext();
+            var experiments = context.Experiments.ToList();
+            lbDbList.ItemsSource = experiments.Select(exp => $"#: {exp.Id}, Title: {exp.Title}, Score: {exp.BestFScore}");
+        }
+
+        private void lbDbList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            using var context = new ExperimentContext();
+            var experiments = context.Experiments.ToList();
+            var experimentFromDb = context.Experiments.FirstOrDefault(x => x.Id == lbDbList.SelectedIndex + 1);
+            Debug.WriteLine($"Selected index: {lbDbList.SelectedIndex}");
+                if (experimentFromDb != null)
+                {
+                    // Загрузка данных из записи
+                    tbDbTitle.Text = experimentFromDb.Title;
+                    
+                    
+
+                    Epochs = experimentFromDb.Epochs;
+                    config.Epochs = experimentFromDb.Epochs;
+
+                    nodesAmount = experimentFromDb.NodeaAmount;
+                    OnPropertyChanged(nameof(NodesAmount));
+                    drawNodes();
+
+                    PopulationSize = experimentFromDb.PopulationSize;
+                    config.PopulationSize = experimentFromDb.PopulationSize;
+
+                    MutationProbability = experimentFromDb.MutationProbability;
+                    config.MutationProbability = experimentFromDb.MutationProbability;
+
+                    CrossoverProbability = experimentFromDb.CrossoverProbability;
+                    config.CrossoverProbability = experimentFromDb.CrossoverProbability;
+
+                    SurvivorsPart = experimentFromDb.SurvivorsPart;
+                    config.SurvivorsPart = experimentFromDb.SurvivorsPart;
+
+                    
+                    
+                    //Best = experimentFromDb.Best;
+                    //BestFScore = bestPath.FScore
+                }
+        }
+
         private void TextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (!visualization) return;
@@ -428,20 +521,20 @@ namespace WpfApp
             drawNodes();
             long prev = 0;
             if (best == string.Empty) return;
-            for (long i = 0; i < solver.Best.Genes.Length; i++)
+            for (long i = 0; i < bestPath.Genes.Length; i++)
             {
                 edges[i] = new Line()
                 {
                     X1 = Canvas.GetLeft(nodes[prev]) + nodeWidth / 2,
                     Y1 = Canvas.GetTop(nodes[prev]) + nodeHeight / 2,
-                    X2 = Canvas.GetLeft(nodes[solver.Best.Genes[i]]) + nodeWidth / 2,
-                    Y2 = Canvas.GetTop(nodes[solver.Best.Genes[i]]) + nodeHeight / 2,
+                    X2 = Canvas.GetLeft(nodes[bestPath.Genes[i]]) + nodeWidth / 2,
+                    Y2 = Canvas.GetTop(nodes[bestPath.Genes[i]]) + nodeHeight / 2,
                     Stroke = Brushes.Green,
                     StrokeThickness = 2
                 };
                 //Canvas.SetZIndex(edges[i], -1);
                 Plot.Children.Add(edges[i]);
-                prev = solver.Best.Genes[i];
+                prev = bestPath.Genes[i];
             }
             Line temp = new Line()
             {
