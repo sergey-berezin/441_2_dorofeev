@@ -16,7 +16,7 @@
 |:-----:|:---------------:|:----------:|
 |[Задание №1](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task1.md)|✅ 22.09|✅ 22.09
 |[Задание №2](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task2.md)|✅ 27.10|✅ 11.11
-|[Задание №3](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task3.md)|✅ 24.11|❌ -
+|[Задание №3](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task3.md)|✅ 24.11|✅ 02.12
 |[Задание №4](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task4.md)|✅ -|❌ -
 
 ## Задание №1
