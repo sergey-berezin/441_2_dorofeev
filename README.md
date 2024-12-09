@@ -17,7 +17,7 @@
 |[Задание №1](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task1.md)|✅ 22.09|✅ 22.09
 |[Задание №2](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task2.md)|✅ 27.10|✅ 11.11
 |[Задание №3](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task3.md)|✅ 24.11|✅ 02.12
-|[Задание №4](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task4.md)|✅ -|❌ -
+|[Задание №4](https://github.com/sergey-berezin/dotnet4/blob/master/courses/autumn2024/Task4.md)|✅ 09.12|✅ 09.12
 
 ## Задание №1
 Выполнено:
@@ -46,6 +46,11 @@
 - Для организации постоянного хранилища применяется технология `Entity Framework Core`.
 
 ![img-4](media/img-4.png)
+
+## Задание №4
+Выполнено: разработано веб-приложение.
+
+![img-5](media/img-5.png)
 
 ## Лицензия
 [GNU General Public License v3.0](https://www.gnu.org/licenses/gpl-3.0.html)
