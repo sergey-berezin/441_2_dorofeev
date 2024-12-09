@@ -1,4 +1,6 @@
-﻿namespace lib;
+﻿using System.Diagnostics;
+
+namespace lib;
 
 public class TSPSolver : IGeneAlgo
 {
@@ -82,7 +84,7 @@ public class TSPSolver : IGeneAlgo
         }
         long start = (long) (population.Length * Config.SurvivorsPart);
         NewPopulation(start, population.Length);
-        return population[0];
+        return best;
     }
     public IEntity Evolve()
     {
@@ -90,12 +92,11 @@ public class TSPSolver : IGeneAlgo
         for(long j = 0; j < population.Length; j++)
         {
             IEntity entity = population[j];
-            TSPPath.Fitness(ref entity, ref matrix);
             TSPPath.Mutate(ref entity, Config.MutationProbability);
             TSPPath.Fitness(ref entity, ref matrix);
             population[j] = entity;
         }
-        IEntity best = Selection();
+        Selection();
         return best;
     }
     public async Task EvolveAsync()

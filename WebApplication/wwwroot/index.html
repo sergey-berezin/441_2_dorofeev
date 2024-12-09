@@ -1,0 +1,105 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Genetic Algorithm (TSP) by ald15</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script> <!-- D3.js -->
+    <link rel="stylesheet" href="css/main.css" />
+    <script src="js/main.js" defer></script>
+    <script src="js/graph.js" defer></script>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg bg-body-tertiary">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">TSPSolver🧬</a>
+            <a class="nav-link" href="https://github.com/ald15/Gene_Algo_.Net">by ald15</a>
+        </div>
+    </nav>
+    <div class="container">
+        <br />
+        <h1 class="text-center">Эксперимент</h1>
+        <br />
+        <br />
+        <div class="row">
+            <div class="col-sm-3 col-xs-12">
+                <div class="text-center">
+                    <h4>Параметры</h4>
+                    <hr />
+                </div>
+                <form id="experiment-form" onsubmit="createExperiment(); return false;">
+                    <div class="mb-3">
+                        <label for="nodesAmount" class="form-label">Количество городов:</label>
+                        <input type="number" min="2" max="70" value="16" id="nodesAmount" name="nodesAmount" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="epochs" class="form-label">Количество эпох:</label>
+                        <input type="number" min="-1" value="100000" id="epochs" name="epochs" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="populationSize" class="form-label">Размер популяции:</label>
+                        <input type="number" min="1" value="1000" id="populationSize" name="populationSize" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="mutationProbability" class="form-label">Вероятность мутации:</label>
+                        <input type="number" step="0.01" min="0" max="1" value="0.5" id="mutationProbability" name="mutationProbability" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="crossoverProbability" class="form-label">Вероятность скрещивания:</label>
+                        <input type="number" step="0.01" min="0" max="1" disabled id="crossoverProbability" name="crossoverProbability" class="form-control">
+                    </div>
+                    <div class="mb-3">
+                        <label for="survivorsPart" class="form-label">Доля выживших:</label>
+                        <input type="number" step="0.01" min="0" max="1" value="0.5" id="survivorsPart" name="survivorsPart" class="form-control" required>
+                    </div>
+                    <hr/>
+                    <button type="submit" class="btn btn-primary"> Создать</button>
+                </form>
+            </div>
+            <div class="col-sm-3 col-xs-12">
+                <div class="text-center">
+                    <h4>Управление</h4>
+                    <hr />
+                </div>
+                <div class="mb-3">
+                    <label for="experimentId" class="form-label">ID эксперимента:</label>
+                    <input type="text" min="0" id="experimentId" name="experimentId" class="form-control">
+                </div>
+                <hr />
+                <button type="button" class="btn btn-primary" onclick="deleteExperiment()">Удалить</button>
+                <button type="button" class="btn btn-primary" onclick="runNextStep()">Шаг</button>
+                <button type="button" class="btn btn-primary" onclick="startEvolution()">Старт</button>
+                <button type="button" class="btn btn-primary" onclick="stopEvolution()">Стоп</button>
+
+                <div style="margin-bottom: 2em"></div>
+            </div>
+            <div class="col-sm-6 col-xs-12">
+                <div class="text-center">
+                    <h4>Лучшая особь</h4>
+                    <hr />
+                </div>
+                <div class="mb-3">
+                    <label for="results" class="form-label">Инфо:</label>
+                    <input type="text" disabled id="results" name="results" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label for="currentEpoch" class="form-label">Текущая эпоха:</label>
+                    <input type="number" min="0" disabled id="currentEpoch" name="currentEpoch" class="form-control">
+                </div>
+                <svg id="graph" class="w-100"></svg>
+            </div>
+            <hr />
+            <p class="d-inline-flex gap-1">
+                <button class="btn btn-primary" type="button" data-bs-toggle="collapse" data-bs-target="#table-container" aria-expanded="false" aria-controls="table-container">
+                    Матрица смежности
+                </button>
+            </p>
+            <div class="collapse" id="table-container"></div>
+        </div>
+        <br/>
+    </div>
+</body>
+</html>
