@@ -14,14 +14,14 @@ app.MapPut("/experiments", (ExperimentParameters parameters) =>
     lock (ExperimentStore._lock)
     {
         var id = Guid.NewGuid();
-        ExperimentStore.Experiments[id] = new Experiment(parameters);
+        Experiment experiment = ExperimentStore.NewExperiment(id, parameters);
         return Results.Ok(
             new
             {
                 ExperimentId = id,
-                NodesAmount = ExperimentStore.Experiments[id].NodesAmount,
-                Matrix = JSONConverter.MatrixToJson(ExperimentStore.Experiments[id].Matrix),
-                Best = ExperimentStore.Experiments[id].Best
+                NodesAmount = experiment.NodesAmount,
+                Matrix = JSONConverter.MatrixToJson(experiment.Matrix),
+                Best = experiment.Best
             }
             );
     }
@@ -31,7 +31,8 @@ app.MapPost("/experiments/{id:guid}", (Guid id) =>
 {
     lock (ExperimentStore._lock)
     {
-        if (!ExperimentStore.Experiments.TryGetValue(id, out var experiment))
+        Experiment experiment;
+        if (!ExperimentStore.GetExperiments(id, out experiment))
             return Results.NotFound("Experiment not found");
 
         var result = experiment.RunStep();
@@ -57,11 +58,12 @@ app.MapPost("/experiments/{id:guid}/start", async (Guid id) =>
 {
     lock (ExperimentStore._lock)
     {
-        if (!ExperimentStore.Experiments.TryGetValue(id, out var experiment))
+        Experiment experiment;
+        if (!ExperimentStore.GetExperiments(id, out experiment))
             return Results.NotFound("Experiment not found");
 
         // Если эволюция уже запущена, возвращаем ошибку
-        if (ExperimentStore.EvolutionTokens.ContainsKey(id))
+        if (ExperimentStore.GetEvolutionTokens(id))
             return Results.BadRequest("Evolution already running for this experiment.");
 
         var cts = new CancellationTokenSource();
@@ -107,7 +109,8 @@ app.MapPost("/experiments/{id:guid}/stop", (Guid id) =>
 
 app.MapGet("/experiments/{id:guid}/stream", async (HttpContext context, Guid id) =>
 {
-        if (!ExperimentStore.Experiments.TryGetValue(id, out var experiment))
+    Experiment experiment;
+    if (!ExperimentStore.GetExperiments(id, out experiment))
         {
             context.Response.StatusCode = 404;
             await context.Response.WriteAsync("Experiment not found");
@@ -118,7 +121,7 @@ app.MapGet("/experiments/{id:guid}/stream", async (HttpContext context, Guid id)
 
         while (true)
         {
-            if (!ExperimentStore.EvolutionTokens.ContainsKey(id)) break;
+            if (!ExperimentStore.GetEvolutionTokens(id)) break;
 
             var fitness = experiment.FScore; // Получаем текущее значение fitness
             var data = $"data: {{\"fScore\": {fitness}," +
@@ -129,6 +132,7 @@ app.MapGet("/experiments/{id:guid}/stream", async (HttpContext context, Guid id)
             await context.Response.Body.FlushAsync();
             await Task.Delay(500); // Отправляем данные каждые 1 сек
         }
+
 });
 
 

@@ -96,5 +96,28 @@ public static class ExperimentStore
     public static Dictionary<Guid, Experiment> Experiments { get; } = new();
     public static readonly Dictionary<Guid, CancellationTokenSource> EvolutionTokens = new();
     public static readonly object _lock = new();
+
+    public static bool GetExperiments(Guid id, out Experiment exp)
+    {
+        lock (_lock)
+        {
+            return Experiments.TryGetValue(id, out exp);
+        }
+    }
+
+    public static bool GetEvolutionTokens(Guid id)
+    {
+        lock (_lock)
+        {
+            return EvolutionTokens.ContainsKey(id);
+        }
+    }
+    public static Experiment NewExperiment(Guid id, ExperimentParameters parameters)
+    {
+        lock (_lock)
+        {
+            return ExperimentStore.Experiments[id] = new Experiment(parameters);
+        }
+    }
 }
 
